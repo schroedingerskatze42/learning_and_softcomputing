@@ -15,44 +15,62 @@ y = dataset.iloc[:, 4].values
 X = np.array([[]])
 X = None
 y = np.array([])
-y = None
+y = []
 with open('Trainingsdaten.pat') as f:
     dim_x = int(f.readline().strip())
     dim_y = int(f.readline().strip())
     foo = int(f.readline().strip())
     target_dimensions = int(f.readline().strip())
 
-    for i in range(0, 2):
+    for i in range(0, 260):
         data = []
         for j in range(0, 14):
             data.append(f.readline().strip())
         # data = " ".join(data).split()
         data = list(map(float, " ".join(data).split()))
 
-        print(data)
         if X is None:
             X = np.array([data])
         else:
             X = np.append(X, [data], axis=0)
-        print(X)
 
         tmp = f.readline().strip().split()
-        if y is None:
-            y = np.array([tmp])
-        else:
-            y = np.append(y, [tmp], axis=0)
+        # print(tmp)
+        print(tmp.index("0.80"))
+        y.append(tmp.index("0.80"))
+        print(y)
 
-    exit()
-dataset = pd.read_csv('Trainingsdaten.csv')
-X = dataset.iloc[:, [2, 3]].values
-y = dataset.iloc[:, 4].values
+    y = np.array(y)
+    print(y)
+    # exit()
+    # print(X)
+    # print(y)
+    # exit()
+# dataset = pd.read_csv('Trainingsdaten.csv')
+# X = dataset.iloc[:, [2, 3]].values
+# y = dataset.iloc[:, 4].values
 
+# print(len(X))
+# print(X)
+# print(len(y))
+# print(y)
 # Splitting the dataset into the Training set and Test set
-from sklearn.cross_validation import train_test_split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.25, random_state = 0)
+# from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
 
-print(X_train)
-print(y_train)
+# X_train = X
+# y_train = y
+# X_test = X
+# y_test = y
+# print(len(X_train))
+# print(len(y_train))
+# print(X_train)
+# print(y_train)
+
+# print(len(X_test))
+# print(len(y_test))
+
+# exit()
 
 
 
