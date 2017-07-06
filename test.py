@@ -16,7 +16,7 @@ def readFiles(path):
             for line in f:
                 if inBody:
                     lines.append(line)
-                elif line == '\n':
+                elif line == ' ':
                     inBody = True
             f.close()
             message = '\n'.join(lines)
