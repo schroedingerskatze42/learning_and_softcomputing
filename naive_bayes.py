@@ -10,9 +10,51 @@ dataset = pd.read_csv('Social_Network_Ads.csv')
 X = dataset.iloc[:, [2, 3]].values
 y = dataset.iloc[:, 4].values
 
+# print(X)
+# print(y)
+X = np.array([[]])
+X = None
+y = np.array([])
+y = None
+with open('Trainingsdaten.pat') as f:
+    dim_x = int(f.readline().strip())
+    dim_y = int(f.readline().strip())
+    foo = int(f.readline().strip())
+    target_dimensions = int(f.readline().strip())
+
+    for i in range(0, 2):
+        data = []
+        for j in range(0, 14):
+            data.append(f.readline().strip())
+        # data = " ".join(data).split()
+        data = list(map(float, " ".join(data).split()))
+
+        print(data)
+        if X is None:
+            X = np.array([data])
+        else:
+            X = np.append(X, [data], axis=0)
+        print(X)
+
+        tmp = f.readline().strip().split()
+        if y is None:
+            y = np.array([tmp])
+        else:
+            y = np.append(y, [tmp], axis=0)
+
+    exit()
+dataset = pd.read_csv('Trainingsdaten.csv')
+X = dataset.iloc[:, [2, 3]].values
+y = dataset.iloc[:, 4].values
+
 # Splitting the dataset into the Training set and Test set
 from sklearn.cross_validation import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.25, random_state = 0)
+
+print(X_train)
+print(y_train)
+
+
 
 # Feature Scaling
 from sklearn.preprocessing import StandardScaler
