@@ -2,7 +2,7 @@ import os
 import io
 import numpy
 from pandas import DataFrame
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 
 def readFiles(path):
@@ -16,7 +16,7 @@ def readFiles(path):
             for line in f:
                 if inBody:
                     lines.append(line)
-                elif line == ' ':
+                elif line == '\n':
                     inBody = True
             f.close()
             message = '\n'.join(lines)
@@ -24,8 +24,8 @@ def readFiles(path):
 
 
 def dataFrameFromDirectory():
-    result = []
-    index = []
+    results = numpy.array([])
+    targets = numpy.array([])
 
     with open('./Trainingsdaten.pat') as f:
         dim_x = int(f.readline().strip())
@@ -34,21 +34,35 @@ def dataFrameFromDirectory():
         target_dimensions = int(f.readline().strip())
 
         for j in range(260):
-            data = []
+            data = ""
             for i in range(dim_y):
                 # data.append([float(i) for i in f.readline().strip().split()])
-                data.append(f.readline().strip())
+                # data.append(list(map(float, f.readline().strip().split())))
+                # data = data + list(map(float, f.readline().strip().split()))
+                data = data + " " + f.readline().strip()
 
-            d = "\n".join(data)
+            # d = " ".join(data)
+            # print(data)
             # target_vector = [float(i) for i in f.readline().strip().split()]
             target_vector = f.readline().strip()
-            result.append({'data': d, 'class': chr(int(int(target_vector.index('0.80')) / 6) + 97)})
-            print(chr(int(int(target_vector.index('0.80')) / 6) + 97))
-            index.append(j)
 
+            # print(d)
+            # print(target_vector)
+            # print(target_vector.index('0.80'))
+
+            results = numpy.append(results, numpy.array(data.strip().split()))
+            targets = numpy.append(targets, numpy.array([chr(int(int(target_vector.index('0.80')) / 6) + 97)]))
+            # targets.append(chr(int(int(target_vector.index('0.80')) / 6) + 97))
+
+            # result = result.append(tmp)
+            # print(chr(int(int(target_vector.index('0.80')) / 6) + 97))
+            # index.append(j)
+
+    print(results)
     # return result
     # return DataFrame(result, index=index)
-    return DataFrame(result)
+    # return DataFrame(result)
+    return {'data': results, 'target': targets}
 
 
 
@@ -68,18 +82,32 @@ def dataFrameFromDirectory():
 
 
 if __name__ == '__main__':
-    data = DataFrame({'data': [], 'class': []})
+    # data = DataFrame({'data': [], 'class': []})
+    # data = data.append(dataFrameFromDirectory())
+    data = dataFrameFromDirectory()
 
-    data = data.append(dataFrameFromDirectory())
+    # print(data)
+    # vectorizer = CountVectorizer()
+    # print(data['data'].values)
+    # counts = vectorizer.fit_transform(data['data'].values)
 
-    print(data)
-    vectorizer = CountVectorizer()
-    counts = vectorizer.fit_transform(data['data'].values)
+    vectorizer = TfidfVectorizer(min_df=1,ngram_range=(1,2))
+    # traindata = ['yes', 'yeah', 'i do not know', 'i am not sure', 'i have no idea', 'i'];
+    X_train = vectorizer.fit_transform(data['data'])
+
+    # Label Ids
+    y_train = data['target']
+
+    # Train classifier
+    # clf.fit(X_train, y_train)
+
+    print(X_train.size)
+    print(y_train.size)
 
     # print(counts)
-    classifier = MultinomialNB()
-    targets = data['class'].values
-    classifier.fit(counts, targets)
+    classifier = MultinomialNB(alpha=1.0, class_prior=None, fit_prior=True)
+    # classifier = MultinomialNB(alpha=0.5, class_prior=None, fit_prior=True)
+    classifier.fit(X_train, y_train)
 
     examples = ['-0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50  0.50  0.50 -0.50 -0.50 -0.50\
 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50  0.50  0.50  0.50 -0.50 -0.50 -0.50\
@@ -122,7 +150,21 @@ if __name__ == '__main__':
 -0.50 -0.50  0.50  0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50\
 -0.50 -0.50  0.50  0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50\
 -0.50 -0.50  0.50  0.50 -0.50 -0.50  0.50  0.50  0.50  0.50  0.50  0.50 -0.50 -0.50\
--0.50 -0.50  0.50  0.50  0.50  0.50  0.50  0.50  0.50  0.50  0.50  0.50 -0.50 -0.50']
+-0.50 -0.50  0.50  0.50  0.50  0.50  0.50  0.50  0.50  0.50  0.50  0.50 -0.50 -0.50',
+                '-0.50 -0.50 -0.50 -0.50  0.50  0.50  0.50  0.50  0.50  0.50 -0.50 -0.50 -0.50 -0.50\
+-0.50 -0.50 -0.50 -0.50  0.50  0.50  0.50  0.50  0.50  0.50 -0.50 -0.50 -0.50 -0.50\
+-0.50 -0.50 -0.50 -0.50 -0.50 -0.50  0.50  0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50\
+-0.50 -0.50 -0.50 -0.50 -0.50 -0.50  0.50  0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50\
+-0.50 -0.50 -0.50 -0.50 -0.50 -0.50  0.50  0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50\
+-0.50 -0.50 -0.50 -0.50 -0.50 -0.50  0.50  0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50\
+-0.50 -0.50 -0.50 -0.50 -0.50 -0.50  0.50  0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50\
+-0.50 -0.50 -0.50 -0.50 -0.50 -0.50  0.50  0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50\
+-0.50 -0.50 -0.50 -0.50 -0.50 -0.50  0.50  0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50\
+-0.50 -0.50 -0.50 -0.50 -0.50 -0.50  0.50  0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50\
+-0.50 -0.50 -0.50 -0.50 -0.50 -0.50  0.50  0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50\
+-0.50 -0.50 -0.50 -0.50 -0.50 -0.50  0.50  0.50 -0.50 -0.50 -0.50 -0.50 -0.50 -0.50\
+-0.50 -0.50 -0.50 -0.50 -0.50  0.50  0.50  0.50  0.50 -0.50 -0.50 -0.50 -0.50 -0.50\
+-0.50 -0.50 -0.50 -0.50  0.50  0.50  0.50  0.50  0.50  0.50 -0.50 -0.50 -0.50 -0.50']
     example_counts = vectorizer.transform(examples)
     predictions = classifier.predict(example_counts)
     print(predictions)
