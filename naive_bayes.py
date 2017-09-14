@@ -285,9 +285,9 @@ if __name__ == '__main__':
             'alpha': 0.0,
         }
 
-        ####################################################################################################################
+        ################################################################################################################
         # Gauss
-        ####################################################################################################################
+        ################################################################################################################
         gaussian_accuracy = []
         gaussian_training_duration = []
         for test_size in np.linspace(.9, .1, TEST_SIZE_PRECISION):
@@ -304,13 +304,13 @@ if __name__ == '__main__':
             cGauss.fit(X_train, y_train)
             training_duration = time.time() - t1
 
-            # predict
-            tmp = []
-            for e in X_test:
-                t1 = time.time()
-                cGauss.predict(e.reshape(1, -1))
-                tmp.append(time.time() - t1)
-            prediction_duration = sum(tmp) / len(tmp)
+            # # predict
+            # tmp = []
+            # for e in X_test:
+            #     t1 = time.time()
+            #     cGauss.predict(e.reshape(1, -1))
+            #     tmp.append(time.time() - t1)
+            # prediction_duration = sum(tmp) / len(tmp)
 
             # score
             score = cGauss.score(X_test, y_test)
@@ -340,13 +340,13 @@ if __name__ == '__main__':
                 cBernoulli.fit(X_train, y_train)
                 training_duration = time.time() - t1
 
-                # predict
-                tmp = []
-                for e in X_test:
-                    t1 = time.time()
-                    cBernoulli.predict(e.reshape(1, -1))
-                    tmp.append(time.time() - t1)
-                prediction_duration = sum(tmp) / len(tmp)
+                # # predict
+                # tmp = []
+                # for e in X_test:
+                #     t1 = time.time()
+                #     cBernoulli.predict(e.reshape(1, -1))
+                #     tmp.append(time.time() - t1)
+                # prediction_duration = sum(tmp) / len(tmp)
 
                 # score
                 score = cBernoulli.score(X_test, y_test)
@@ -378,13 +378,13 @@ if __name__ == '__main__':
                 cMultinomial.fit(X_train, y_train)
                 training_duration = time.time() - t1
 
-                # predict
-                tmp = []
-                for e in normalize_data(X_test):
-                    t1 = time.time()
-                    cMultinomial.predict(e.reshape(1, -1))
-                    tmp.append(time.time() - t1)
-                prediction_duration = sum(tmp) / len(tmp)
+                # # predict
+                # tmp = []
+                # for e in normalize_data(X_test):
+                #     t1 = time.time()
+                #     cMultinomial.predict(e.reshape(1, -1))
+                #     tmp.append(time.time() - t1)
+                # prediction_duration = sum(tmp) / len(tmp)
 
                 # score
                 score = cMultinomial.score(normalize_data(X_test), y_test)
@@ -401,7 +401,7 @@ if __name__ == '__main__':
         print(best_bernoulli)
         print(best_multinomial)
 
-        # Plot graphs
+        # Plot KPIs
         training_set_sizes = [e * len(X) for e in np.linspace(.1, .9, TEST_SIZE_PRECISION)]
 
         init_plot('Accuracy as a function of training sets', 'Training Sets', 'Accuracy')
@@ -430,8 +430,8 @@ if __name__ == '__main__':
         for i in range(0, round(len(X) / 26) - 1):
             training_size_absolute = 26 * (i + 1)
 
-            cMultinomialP = MultinomialNB(alpha=0.2, fit_prior=False, class_prior=normalized_distribution)
-            cMultinomialNP = MultinomialNB(alpha=0.2, fit_prior=False, class_prior=[1/26] * 26)
+            cMultinomialP = MultinomialNB(alpha=0.1, fit_prior=False, class_prior=normalized_distribution)
+            cMultinomialNP = MultinomialNB(alpha=0.1, fit_prior=False, class_prior=[1/26] * 26)
 
             training_size_absolute = 26 * (i + 1)
 
