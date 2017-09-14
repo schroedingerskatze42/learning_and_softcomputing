@@ -2,14 +2,18 @@
 
 # Importing the libraries
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
-from sklearn.model_selection import ShuffleSplit
+# from mpl_toolkits.mplot3d import Axes3D
+# from sklearn.model_selection import ShuffleSplit
+
 from sklearn.naive_bayes import GaussianNB
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.model_selection import train_test_split
+
 import matplotlib.pyplot as plt
+
+from sklearn.model_selection import train_test_split
 from sklearn.model_selection import learning_curve
+
 import random
 import time
 
@@ -19,9 +23,7 @@ normalized_derivation = [float(i) / max(char_derivation) for i in char_derivatio
 normalized_derivation_1 = [float(i) / sum(char_derivation) for i in char_derivation]
 
 
-
-def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
-                        n_jobs=1, train_sizes=np.linspace(.1, 1, 10)):
+def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None, n_jobs=1, train_sizes=np.linspace(.1, 1, 10)):
     """
     Generate a simple plot of the test and training learning curve.
 
@@ -79,8 +81,9 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
         estimator,
         X,
         y,
-        # cv=cv,
-        cv=11,
+        cv=cv,
+        # cv=11,
+        exploit_incremental_learning=True,
         n_jobs=n_jobs,
         train_sizes=train_sizes,
         verbose=0
@@ -128,16 +131,33 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
     return plt
 
 
+def init_plot(title, x_legend, y_legend):
+    plt.title(title)
+
+    plt.xlabel(x_legend)
+    plt.ylabel(y_legend)
+
+    plt.grid(True)
+
+
+def plot(x, y, label):
+    """Plot accuracy as a function of x."""
+    x = np.array(x)
+    y = np.array(y)
+
+    plt.plot(x, y, label=label)
+
+
+def print_plot():
+    plt.legend()
+    plt.show()
+
+
 def read_data(file_name):
     X = None
     y = None
-    with open(file_name) as f:
-        # meta information
-        dim_x = int(f.readline().strip())
-        dim_y = int(f.readline().strip())
-        __foo = int(f.readline().strip())
-        target_dimensions = int(f.readline().strip())
 
+    with open(file_name) as f:
         for l in f:
             # read data
             data = [l]
@@ -200,55 +220,36 @@ def get_derivated_subset(data, target):
     _data = [e for j, e in enumerate(data) if j in index_list]
     _target = [e for j, e in enumerate(target) if j in index_list]
 
-    # print(_data)
-    # print(len(_data))
-    # print(_target)
-    # print(len(_target))
-    # exit(1)
     return {'data': np.array(_data), 'target': np.array(_target)}
 
 
-def init_plot(title, x_legend, y_legend):
-    plt.title(title)
+def my_train_test_split(X, y, test_size, random=True, is_relative_size=True):
+    if is_relative_size:
+        abs_test_size = round(test_size * len(X))
+    else:
+        abs_test_size = test_size
+        test_size = abs_test_size / len(X)
 
-    plt.xlabel(x_legend)
-    plt.ylabel(y_legend)
+    if random:
+        head_X = X[:52]
+        tail_X = X[52:]
+        head_y = y[:52]
+        tail_y = y[52:]
 
-    plt.grid(True)
+        X_train, X_test, y_train, y_test = train_test_split(tail_X, tail_y, test_size=test_size)
 
+        X_train = np.append(X_train, head_X[26:], axis=0)
+        y_train = np.append(y_train, head_y[26:], axis=0)
 
-def plot(x, y, label):
-    """Plot accuracy as a function of x."""
-    x = np.array(x)
-    y = np.array(y)
-
-    plt.plot(x, y, label=label)
-
-
-def print_plot():
-    plt.legend()
-    plt.show()
-
-
-def my_train_test_split(X, y, test_size):
-    head_X = X[:52]
-    tail_X = X[52:]
-    head_y = y[:52]
-    tail_y = y[52:]
-
-    X_train, X_test, y_train, y_test = train_test_split(tail_X, tail_y, test_size=test_size)
-
-    X_train = np.append(X_train, head_X[26:], axis=0)
-    y_train = np.append(y_train, head_y[26:], axis=0)
-
-    X_test = np.append(X_train, head_X[:26], axis=0)
-    y_test = np.append(y_train, head_y[:26], axis=0)
+        X_test = np.append(X_test, head_X[:26], axis=0)
+        y_test = np.append(y_test, head_y[:26], axis=0)
+    else:
+        X_train = np.array(X[abs_test_size:])
+        X_test  = np.array(X[:abs_test_size])
+        y_train = np.array(y[abs_test_size:])
+        y_test  = np.array(y[:abs_test_size])
 
     return X_train, X_test, y_train, y_test
-
-
-def inverse_priors(priors):
-    return [1/26 - (e - 1/26) for e in priors]
 
 
 def get_priors(y):
@@ -261,52 +262,66 @@ def get_priors(y):
 
 
 if __name__ == '__main__':
+    PRECISION = 10
+
     X, y = read_data('data.pat')
 
     best_gaussian = {
-        'test_size': 0,
+        'training_size': 0,
         'score': 0.0,
+        'priors': [],
     }
     best_bernoulli = {
-        'test_size': 0,
+        'training_size': 0,
         'score': 0.0,
         'alpha': 0.0,
+        'priors': [],
     }
     best_multinomial = {
-        'test_size': 0,
+        'training_size': 0,
         'score': 0.0,
         'alpha': 0.0,
+        'priors': [],
     }
-    #
-    # gaussian_accuracy = []
-    # gaussian_training_duration = []
-    # gaussian_prediction_duration = []
-    # for d in range(1, 10):
-    #     test_size = 1 - (d / 10)
-    #
-    #     X_train, X_test, y_train, y_test = my_train_test_split(normalize_data(X), y, test_size=test_size)  # todo write own
-    #
-    #     priors = get_priors(y_test)
-    #
-    #     # only way it makes sense in our context
-    #     # cGauss = GaussianNB(priors=get_priors(y_train))
-    #     cGauss = GaussianNB()
-    #
-    #     t1 = time.time()
-    #     cGauss.fit(X_train, y_train)
-    #     training_duration = time.time() - t1
-    #     # cGauss.set_params(priors=get_priors(y_train))
-    #
-    #     tmp = []
-    #     for e in X_test:
-    #         t1 = time.time()
-    #         cGauss.predict(e.reshape(1, -1))
-    #         tmp.append(time.time() - t1)
-    #     prediction_duration = sum(tmp) / len(tmp)
-    #
-    #     gaussian_accuracy.append((round((1 - test_size) * len(X_train)), cGauss.score(X_test, y_test)))
-    #     gaussian_training_duration.append((round((1 - test_size) * len(X_train)), training_duration))
-    #     gaussian_prediction_duration.append((round((1 - test_size) * len(X_train)), prediction_duration))
+
+    ###########
+    # Gauss
+    gaussian_accuracy = []
+    gaussian_training_duration = []
+    gaussian_prediction_duration = []
+    for d in np.linspace(.1, .9, PRECISION):
+        test_size = 1 - d
+
+        X_train, X_test, y_train, y_test = my_train_test_split(X, y, test_size=test_size)
+
+        training_size = len(y_train)
+        priors = get_priors(y_test)
+
+        # only way it makes sense in our context
+        # cGauss = GaussianNB(priors=get_priors(y_train))
+        cGauss = GaussianNB()
+
+        t1 = time.time()
+        cGauss.fit(X_train, y_train)
+        training_duration = time.time() - t1
+        # cGauss.set_params(priors=get_priors(y_train))
+
+        tmp = []
+        for e in X_test:
+            t1 = time.time()
+            cGauss.predict(e.reshape(1, -1))
+            tmp.append(time.time() - t1)
+        prediction_duration = sum(tmp) / len(tmp)
+
+        score = cGauss.score(X_test, y_test)
+        if score > best_gaussian['score']:
+            best_gaussian['score'] = score
+            best_gaussian['training_size'] = training_size
+            best_gaussian['priors'] = get_priors(y_train)
+
+        gaussian_accuracy.append((training_size, score))
+        gaussian_training_duration.append((training_size, training_duration))
+        gaussian_prediction_duration.append((training_size, prediction_duration))
 
     ###########
     # Bernoulli
@@ -314,17 +329,18 @@ if __name__ == '__main__':
     bernoulli_training_duration = []
     bernoulli_prediction_duration = []
 
-    PRECISION = 10
     plot_X = np.linspace(.1, 1, PRECISION)
-    plot_Y = np.linspace(.1, 1, PRECISION)
+    plot_Y = np.linspace(.1, .9, PRECISION)
     plot_Z = []
-    for alpha in np.linspace(.1, 1, PRECISION):
+    for alpha in np.linspace(.1, 1, 1):
         _Z = []
-        for d in np.linspace(.1, 0.9, PRECISION):
+        i = 0
+        for d in np.linspace(.1, .9, PRECISION):
             test_size = 1 - d
 
             X_train, X_test, y_train, y_test = my_train_test_split(X, y, test_size=test_size)
 
+            training_size = len(y_train)
             cBernoulli = BernoulliNB(binarize=0.0, alpha=alpha, fit_prior=False, class_prior=get_priors(y_test))
 
             t1 = time.time()
@@ -336,15 +352,26 @@ if __name__ == '__main__':
                 t1 = time.time()
                 cBernoulli.predict(e.reshape(1, -1))
                 tmp.append(time.time() - t1)
+            prediction_duration = sum(tmp) / len(tmp)
+
+            score = cBernoulli.score(X_test, y_test)
+            if score > best_bernoulli['score']:
+                best_bernoulli['i'] = i
+                best_bernoulli['score'] = score
+                best_bernoulli['alpha'] = alpha
+                best_bernoulli['training_size'] = training_size
+                best_bernoulli['priors'] = get_priors(y_test)
 
             _Z.append(cBernoulli.score(X_test, y_test))
 
-            bernoulli_accuracy.append(((1 - test_size) * len(X_train), alpha, cBernoulli.score(X_test, y_test)))
-            bernoulli_training_duration.append(((1 - test_size) * len(X_train), alpha, training_duration))
-            bernoulli_prediction_duration.append((round((1 - test_size) * len(X_train)), alpha, sum(tmp) / len(tmp)))#
+            bernoulli_accuracy.append((training_size, alpha, score))
+            bernoulli_training_duration.append((training_size, alpha, training_duration))
+            bernoulli_prediction_duration.append((training_size, alpha, prediction_duration))
+            i += 1
 
         plot_Z.append(_Z)
 
+    # todo use this?
     # fig = plt.figure()
     # ax = fig.gca(projection='3d')
     # ax.set_xlabel('Test Size')
@@ -352,88 +379,140 @@ if __name__ == '__main__':
     # ax.set_zlabel('Accuracy')
     # ax.plot_surface(np.unique(plot_X), np.unique(plot_Y), plot_Z)
     # plt.show()
-    #
-    print(bernoulli_accuracy)
+    # exit(1)
 
-    # print([e[1] for i, e in enumerate(bernoulli_accuracy) if i % PRECISION == 0])
-    # print([e[2] for i, e in enumerate(bernoulli_accuracy) if i % PRECISION == 0])
-    # init_plot('Prediction accuracy as a function of alpha', 'Alpha', 'Accuracy')
-    # plot([e[1] for i, e in enumerate(bernoulli_accuracy) if i % PRECISION == 0], [e[2] for i, e in enumerate(bernoulli_accuracy) if i % PRECISION == 0], 'Bernoulli')
-    # plot([e[0] for e in multinomial_prediction_duration], [e[1] for e in multinomial_prediction_duration], 'Multinomial')
-    # plot([e[0] for e in bernoulli_prediction_duration], [e[1] for e in bernoulli_prediction_duration], 'Bernoulli')
-    # print_plot()
-    exit(1)
-
-    for d in range(1, 10):
-        test_size = 1 - (d / 10)
-
-        X_train, X_test, y_train, y_test = my_train_test_split(X, y, test_size=test_size)
-
-        X_train = np.append(X_train, X[:26], axis=0)
-        y_train = np.append(y_train, y[:26], axis=0)
-        cBernoulli = BernoulliNB(binarize=0.0, alpha=1.0, fit_prior=False, class_prior=get_priors(y_test))
-
-        t1 = time.time()
-        cBernoulli.fit(X_train, y_train)
-        training_duration = time.time() - t1
-
-        tmp = []
-        for e in X_test:
-            t1 = time.time()
-            cBernoulli.predict(e.reshape(1, -1))
-            tmp.append(time.time() - t1)
-
-        print(cBernoulli.score(X_test, y_test))
-
-        bernoulli_accuracy.append(((1 - test_size) * len(X_train), cBernoulli.score(X_test, y_test)))
-        bernoulli_training_duration.append(((1 - test_size) * len(X_train), training_duration))
-        bernoulli_prediction_duration.append((round((1 - test_size) * len(X_train)), sum(tmp) / len(tmp)))
+    #############
+    # Mutlinomial
     multinomial_accuracy = []
     multinomial_training_duration = []
     multinomial_prediction_duration = []
-    for d in range(1, 10):
-        test_size = 1 - (d / 10)
 
-        X_train, X_test, y_train, y_test = my_train_test_split(X, y, test_size=test_size)
+    PRECISION = 10
+    plot_X = np.linspace(.1, 1, PRECISION)
+    plot_Y = np.linspace(.1, .9, PRECISION)
+    plot_Z = []
+    for alpha in np.linspace(.1, 1, 1):
+        _Z = []
+        i = 0
+        for d in np.linspace(.1, .9, PRECISION):
+            test_size = 1 - d
 
-        cMulti = MultinomialNB()
+            X_train, X_test, y_train, y_test = my_train_test_split(X, y, test_size=test_size)
 
-        t1 = time.time()
-        X_train = normalize_data(X_train)
-        cMulti.fit(X_train, y_train)
-        training_duration = time.time() - t1
+            training_size = len(y_train)
+            cMultinomial = MultinomialNB(alpha=alpha, fit_prior=False, class_prior=get_priors(y_test))
 
-        tmp = []
-        for e in normalize_data(X_test):
             t1 = time.time()
-            cMulti.predict(e.reshape(1, -1))
-            tmp.append(time.time() - t1)
+            X_train = normalize_data(X_train)
+            cMultinomial.fit(X_train, y_train)
+            training_duration = time.time() - t1
 
-        multinomial_accuracy.append(((1 - test_size) * len(X_train), cMulti.score(normalize_data(X_test), y_test)))
-        multinomial_training_duration.append(((1 - test_size) * len(X_train), training_duration))
-        multinomial_prediction_duration.append((round((1 - test_size) * len(X_train)), sum(tmp) / len(tmp)))
+            tmp = []
+            for e in normalize_data(X_test):
+                t1 = time.time()
+                cMultinomial.predict(e.reshape(1, -1))
+                tmp.append(time.time() - t1)
+            prediction_duration = sum(tmp) / len(tmp)
 
-    plot_learning_curve(BernoulliNB(), 'BernoulliNB', X, y).show()
-    plot_learning_curve(MultinomialNB(), 'MultinomialNB', normalize_data(X), y).show()
-    plot_learning_curve(GaussianNB(priors=[1/26] * 26), 'Gauss', X, y).show()
+            score = cMultinomial.score(normalize_data(X_test), y_test)
+            if score > best_multinomial['score']:
+                best_multinomial['i'] = i
+                best_multinomial['score'] = score
+                best_multinomial['alpha'] = alpha
+                best_multinomial['training_size'] = training_size
+                best_multinomial['priors'] = get_priors(y_test)
 
-    # init_plot('Accuracy as a function of Training Sets', 'Training Sets', 'Accuracy')
-    # plot([e[0] for e in gaussian_accuracy], [e[1] for e in gaussian_accuracy], 'Gauss')
-    # plot([e[0] for e in multinomial_accuracy], [e[1] for e in multinomial_accuracy], 'Multinomial')
-    # plot([e[0] for e in bernoulli_accuracy], [e[1] for e in bernoulli_accuracy], 'Bernoulli')
-    # print_plot()
-    #
-    # init_plot('Learning duration as a function of Training Sets', 'Training Sets', 'Duration')
-    # plot([e[0] for e in gaussian_training_duration], [e[1] for e in gaussian_training_duration], 'Gauss')
-    # plot([e[0] for e in multinomial_training_duration], [e[1] for e in multinomial_training_duration], 'Multinomial')
-    # plot([e[0] for e in bernoulli_training_duration], [e[1] for e in bernoulli_training_duration], 'Bernoulli')
-    # print_plot()
-    #
+            multinomial_accuracy.append((training_size, alpha, score))
+            multinomial_training_duration.append((training_size, alpha, training_duration))
+            multinomial_prediction_duration.append((training_size, alpha, prediction_duration)) # todo remove
+            i += 1
+
+    # todo debug
+    # print(best_gaussian)
+    # print(best_bernoulli)
+    # print(best_multinomial)
+    # print(gaussian_accuracy)
+    # print(bernoulli_accuracy)
+    # print(multinomial_accuracy)
+    # print([e[0] for e in gaussian_accuracy])
+    # print([e[1] for e in gaussian_accuracy])
+    # print([e[0] for e in gaussian_accuracy])
+    # print([e[2] for i, e in enumerate(bernoulli_accuracy) if i % 1 == 0])
+    # print([e[0] for e in gaussian_accuracy])
+    # print([e[2] for i, e in enumerate(multinomial_accuracy) if i % 1 == 0])
+    # plot_learning_curve(GaussianNB(priors=best_gaussian['priors']), 'Gauss', X, y).show()
+    # plot_learning_curve(BernoulliNB(binarize=0.0, alpha=best_bernoulli['alpha']), 'BernoulliNB', X, y).show()
+    # plot_learning_curve(MultinomialNB(alpha=alpha), 'MultinomialNB', normalize_data(X), y).show()
+    # exit(1)
+
+    training_set_sizes = [e[0] for e in gaussian_accuracy]
+    init_plot('Accuracy as a function of Training Sets', 'Training Sets', 'Accuracy')
+    plot(training_set_sizes, [e[1] for e in gaussian_accuracy], 'Gauss')
+    plot(training_set_sizes, [e[2] for i, e in enumerate(bernoulli_accuracy) if i % 1 == 0], 'Bernoulli') #todo fix index
+    plot(training_set_sizes, [e[2] for i, e in enumerate(multinomial_accuracy) if i % 1 == 0], 'Multinomial')
+    print_plot()
+
+    init_plot('Learning duration as a function of Training Sets', 'Training Sets', 'Duration')
+    plot(training_set_sizes, [e[1] for e in gaussian_training_duration], 'Gauss')
+    plot(training_set_sizes, [e[2] for i, e in enumerate(bernoulli_training_duration) if i % 1 == 0], 'Multinomial')
+    plot(training_set_sizes, [e[2] for i, e in enumerate(multinomial_training_duration) if i % 1 == 0], 'Bernoulli')
+    print_plot()
+
     # init_plot('Prediction duration as a function of Training Sets', 'Training Sets', 'Duration')
-    # plot([e[0] for e in gaussian_prediction_duration], [e[1] for e in gaussian_prediction_duration], 'Gauss')
-    # plot([e[0] for e in multinomial_prediction_duration], [e[1] for e in multinomial_prediction_duration], 'Multinomial')
-    # plot([e[0] for e in bernoulli_prediction_duration], [e[1] for e in bernoulli_prediction_duration], 'Bernoulli')
+    # plot(training_set_sizes, [e[1] for e in gaussian_prediction_duration], 'Gauss')
+    # plot(training_set_sizes, [e[2] for i, e in enumerate(bernoulli_prediction_duration) if i % 1 == 0], 'Multinomial')
+    # plot(training_set_sizes, [e[2] for i, e in enumerate(multinomial_prediction_duration) if i % 1 == 0], 'Bernoulli')
     # print_plot()
+
+    # todo best usage
+    plot_learning_curve(GaussianNB(), 'Gauss', X, y).show()
+    plot_learning_curve(BernoulliNB(binarize=0.0, alpha=best_bernoulli['alpha']), 'BernoulliNB', X, y).show()
+    plot_learning_curve(MultinomialNB(alpha=best_multinomial['alpha']), 'MultinomialNB', normalize_data(X), y).show()
+    exit(1)
+
+    #############
+    # Mutlinomial
+    cMultinomial = MultinomialNB(alpha=0.1, fit_prior=False, class_prior=[1/26] * 26)
+    data_epo = []
+    for i in range(0, round(len(X) / 26) - 1):
+        X_train = X[26 * i:][:26]
+        X_test = X[26 * (i + 1):]
+        y_train = y[26 * i:][:26]
+        y_test = y[26 * (i + 1):]
+
+        cMultinomial.partial_fit(normalize_data(X_train), y_train, classes=range(0, 26))
+
+        data_epo.append((i + 1, cMultinomial.score(normalize_data(X_test), y_test)))
+
+    data_full = []
+    for i in range(0, round(len(X) / 26) - 1):
+        cMultinomial = MultinomialNB(alpha=0.1, fit_prior=False, class_prior=[1/26] * 26)
+        training_size_absolute = 26 * (i + 1)
+
+        X_train = X[:training_size_absolute]
+        X_test = X[training_size_absolute:]
+        y_train = y[:training_size_absolute]
+        y_test = y[training_size_absolute:]
+
+        cMultinomial.fit(normalize_data(X_train), y_train)
+
+        data_full.append((i + 1, cMultinomial.score(normalize_data(X_test), y_test)))
+
+    init_plot('Accuracy as a function of learned Training Sets', 'Training Sets', 'Accuracy')
+    plot([e[0] for e in data_epo], [e[1] for e in data_epo], 'Incremental Learning')
+    plot([e[0] for e in data_full], [e[1] for e in data_full], 'Full Learning')  # todos
+    print_plot()
+
+    print(data_epo)
+    print(data_full)
+    exit(1)
+
+    data = []
+    cMultinomial = MultinomialNB(alpha=0.1, fit_prior=False, class_prior=[1/26] * 26)
+    cMultinomial.fit(normalize_data(X[:1038]), y[:1038])
+    data.append((len(X[:1038]), cMultinomial.score(normalize_data(X[1038:]), y[1038:])))
+
+    print(data)
 
     exit(1)
 
