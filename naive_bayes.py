@@ -23,6 +23,7 @@ normalized_distribution = [float(i) / max(char_distribution) for i in char_distr
 
 STEP = int(sys.argv[1])
 
+
 def plot_learning_curve(
         estimator,
         title,
@@ -250,9 +251,9 @@ def my_train_test_split(X, y, test_size, random=True, is_relative_size=True):
         y_test = np.append(y_test, head_y[:26], axis=0)
     else:
         X_train = np.array(X[abs_test_size:])
-        X_test  = np.array(X[:abs_test_size])
+        X_test = np.array(X[:abs_test_size])
         y_train = np.array(y[abs_test_size:])
-        y_test  = np.array(y[:abs_test_size])
+        y_test = np.array(y[:abs_test_size])
 
     return X_train, X_test, y_train, y_test
 
@@ -290,6 +291,7 @@ if __name__ == '__main__':
         ################################################################################################################
         gaussian_accuracy = []
         gaussian_training_duration = []
+        gaussian_scoring_duration = []
         for test_size in np.linspace(.9, .1, TEST_SIZE_PRECISION):
             # init
             X_train, X_test, y_train, y_test = my_train_test_split(X, y, test_size=test_size)
@@ -313,19 +315,23 @@ if __name__ == '__main__':
             # prediction_duration = sum(tmp) / len(tmp)
 
             # score
+            t1 = time.time()
             score = cGauss.score(X_test, y_test)
+            scoring_duration = time.time() - t1
             if score > best_gaussian['score']:
                 best_gaussian['score'] = score
                 best_gaussian['training_size'] = training_size
 
             gaussian_accuracy.append((training_size, score))
             gaussian_training_duration.append((training_size, training_duration))
+            gaussian_scoring_duration.append((training_size, scoring_duration))
 
         ################################################################################################################
         # Bernoulli
         ################################################################################################################
         bernoulli_accuracy = []
         bernoulli_training_duration = []
+        bernoulli_scoring_duration = []
         for alpha in np.linspace(.1, 1, ALPHA_PRECISION):
             for test_size in np.linspace(.9, .1, TEST_SIZE_PRECISION):
                 # init
@@ -349,7 +355,9 @@ if __name__ == '__main__':
                 # prediction_duration = sum(tmp) / len(tmp)
 
                 # score
+                t1 = time.time()
                 score = cBernoulli.score(X_test, y_test)
+                scoring_duration = time.time() - t1
                 if score > best_bernoulli['score']:
                     best_bernoulli['score'] = score
                     best_bernoulli['alpha'] = alpha
@@ -357,12 +365,14 @@ if __name__ == '__main__':
 
                 bernoulli_accuracy.append((training_size, alpha, score))
                 bernoulli_training_duration.append((training_size, alpha, training_duration))
+                bernoulli_scoring_duration.append((training_size, alpha, scoring_duration))
 
         ################################################################################################################
         # Multinomial
         ################################################################################################################
         multinomial_accuracy = []
         multinomial_training_duration = []
+        multinomial_scoring_duration = []
         for alpha in np.linspace(.1, 1, ALPHA_PRECISION):
             for test_size in np.linspace(.9, .1, TEST_SIZE_PRECISION):
                 # init
@@ -387,7 +397,9 @@ if __name__ == '__main__':
                 # prediction_duration = sum(tmp) / len(tmp)
 
                 # score
+                t1 = time.time()
                 score = cMultinomial.score(normalize_data(X_test), y_test)
+                scoring_duration = time.time() - t1
                 if score > best_multinomial['score']:
                     best_multinomial['score'] = score
                     best_multinomial['alpha'] = alpha
@@ -395,6 +407,7 @@ if __name__ == '__main__':
 
                 multinomial_accuracy.append((training_size, alpha, score))
                 multinomial_training_duration.append((training_size, alpha, training_duration))
+                multinomial_scoring_duration.append((training_size, alpha, scoring_duration))
 
         # debug
         print(best_gaussian)
@@ -407,31 +420,43 @@ if __name__ == '__main__':
         init_plot('Accuracy as a function of training sets', 'Training Sets', 'Accuracy')
         plot(training_set_sizes, [e[1] for e in gaussian_accuracy], 'Gauss')
         plot(training_set_sizes, [e[2] for e in bernoulli_accuracy if e[1] == best_bernoulli['alpha']], 'Bernoulli')
-        plot(training_set_sizes, [e[2] for e in multinomial_accuracy if e[1] == best_multinomial['alpha']], 'Multinomial')
+        plot(training_set_sizes, [e[2] for e in multinomial_accuracy if e[1] == best_multinomial['alpha']],
+             'Multinomial')
         print_plot()
 
         init_plot('Learning duration as a function of training sets', 'Training Sets', 'Duration')
         plot(training_set_sizes, [e[1] for e in gaussian_training_duration], 'Gauss')
-        plot(training_set_sizes, [e[2] for e in bernoulli_training_duration if e[1] == best_bernoulli['alpha']], 'Multinomial')
-        plot(training_set_sizes, [e[2] for e in multinomial_training_duration if e[1] == best_multinomial['alpha']], 'Bernoulli')
+        plot(training_set_sizes, [e[2] for e in bernoulli_training_duration if e[1] == best_bernoulli['alpha']],
+             'Multinomial')
+        plot(training_set_sizes, [e[2] for e in multinomial_training_duration if e[1] == best_multinomial['alpha']],
+             'Bernoulli')
+        print_plot()
+
+        init_plot('Scoring duration as a function of training sets', 'Testing Sets', 'Duration')
+        plot([len(X) - e for e in training_set_sizes], [e[1] for e in gaussian_scoring_duration], 'Gauss')
+        plot([len(X) - e for e in training_set_sizes],
+             [e[2] for e in bernoulli_scoring_duration if e[1] == best_bernoulli['alpha']], 'Multinomial')
+        plot([len(X) - e for e in training_set_sizes],
+             [e[2] for e in multinomial_scoring_duration if e[1] == best_multinomial['alpha']], 'Bernoulli')
         print_plot()
 
         plot_learning_curve(GaussianNB(), 'Gauss', X, y).show()
         plot_learning_curve(BernoulliNB(binarize=0.0, alpha=best_bernoulli['alpha']), 'BernoulliNB', X, y).show()
-        plot_learning_curve(MultinomialNB(alpha=best_multinomial['alpha']), 'MultinomialNB', normalize_data(X), y).show()
+        plot_learning_curve(MultinomialNB(alpha=best_multinomial['alpha']), 'MultinomialNB', normalize_data(X),
+                            y).show()
 
     elif STEP == 2:
         ################################################################################################################
         # Multinomial - Priors
         ################################################################################################################
-        cMultinomial = MultinomialNB(alpha=0.1, fit_prior=False, class_prior=[1/26] * 26)
+        cMultinomial = MultinomialNB(alpha=0.1, fit_prior=False, class_prior=[1 / 26] * 26)
         data_p = []
         data_np = []
         for i in range(0, round(len(X) / 26) - 1):
             training_size_absolute = 26 * (i + 1)
 
             cMultinomialP = MultinomialNB(alpha=0.1, fit_prior=False, class_prior=normalized_distribution)
-            cMultinomialNP = MultinomialNB(alpha=0.1, fit_prior=False, class_prior=[1/26] * 26)
+            cMultinomialNP = MultinomialNB(alpha=0.1, fit_prior=False, class_prior=[1 / 26] * 26)
 
             training_size_absolute = 26 * (i + 1)
 
@@ -462,7 +487,7 @@ if __name__ == '__main__':
         ################################################################################################################
         # Multinomial - Aufgabenstellung Epochen
         ################################################################################################################
-        cMultinomial = MultinomialNB(alpha=0.1, fit_prior=False, class_prior=[1/26] * 26)
+        cMultinomial = MultinomialNB(alpha=0.1, fit_prior=False, class_prior=[1 / 26] * 26)
         data_epo = []
         for i in range(0, round(len(X) / 26) - 1):
             X_train = X[26 * i:][:26]
@@ -476,7 +501,7 @@ if __name__ == '__main__':
 
         data_full = []
         for i in range(0, round(len(X) / 26) - 1):
-            cMultinomial = MultinomialNB(alpha=0.1, fit_prior=False, class_prior=[1/26] * 26)
+            cMultinomial = MultinomialNB(alpha=0.1, fit_prior=False, class_prior=[1 / 26] * 26)
             training_size_absolute = 26 * (i + 1)
 
             X_train = X[:training_size_absolute]
@@ -497,3 +522,52 @@ if __name__ == '__main__':
         plot([e[0] for e in data_epo], [e[1] for e in data_epo], 'Incremental Learning')
         plot([e[0] for e in data_full], [e[1] for e in data_full], 'Full Learning')
         print_plot()
+
+    elif STEP == 4:
+        ################################################################################################################
+        # Multinomial - Falsch erkannt
+        ################################################################################################################
+        cMultinomial = MultinomialNB(alpha=0.1, fit_prior=False, class_prior=[1 / 26] * 26)
+
+        X_train = X[:520]
+        X_test = X[520:]
+        y_train = y[:520]
+        y_test = y[520:]
+
+        cMultinomial.fit(normalize_data(X_train), y_train)
+
+        results = {}
+        for _X, _y in zip(X_test, y_test):
+            if not _y in results:
+                results[_y] = [0] * 26
+            results[_y][cMultinomial.predict(normalize_data(_X).reshape(1, -1))[0]] += 1
+
+        print(results)
+
+        best = 0
+        worst = 26
+        for i, r in results.items():
+            if r[i] < worst:
+                worst = r[i]
+                r_worst = {'char': chr(i + 97), 'r': r}
+            if r[i] > best:
+                best = r[i]
+                r_best = {'char': chr(i + 97), 'r': r}
+
+        labels = [chr(i + 97) for i, e in enumerate(r_best['r']) if e > 0]
+        sizes = [e for i, e in enumerate(r_best['r']) if e > 0]
+
+        fig1, ax1 = plt.subplots()
+        ax1.pie(sizes, labels=labels, autopct='%1.1f%%')
+        plt.title('Best interpreted character "%s"' % r_best['char'])
+        ax1.axis('equal')
+        plt.show()
+
+        labels = [chr(i + 97) for i, e in enumerate(r_worst['r']) if e > 0]
+        sizes = [e for i, e in enumerate(r_worst['r']) if e > 0]
+
+        fig1, ax1 = plt.subplots()
+        ax1.pie(sizes, labels=labels, autopct='%1.1f%%')
+        plt.title('Worst interpreted character "%s"' % r_worst['char'])
+        ax1.axis('equal')
+        plt.show()
