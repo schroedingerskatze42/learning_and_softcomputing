@@ -571,3 +571,13 @@ if __name__ == '__main__':
         plt.title('Worst interpreted character "%s"' % r_worst['char'])
         ax1.axis('equal')
         plt.show()
+
+        for i, r in results.items():
+            labels = [chr(i + 97) for i, e in enumerate(r) if e > 0]
+            sizes = [e for i, e in enumerate(r) if e > 0]
+
+            fig1, ax1 = plt.subplots()
+            ax1.pie(sizes, labels=labels, autopct='%1.1f%%')
+            plt.title('Character "%s"' % chr(i + 97))
+            ax1.axis('equal')
+            plt.show()
